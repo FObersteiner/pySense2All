@@ -15,7 +15,7 @@ from machine import I2C
 import time
 import pycom
 
-__version__ = '0.0.4'
+__version__ = "0.0.4"
 
 """ PIC MCU wakeup reason types """
 WAKE_REASON_ACCELEROMETER = 1
@@ -23,8 +23,9 @@ WAKE_REASON_PUSH_BUTTON = 2
 WAKE_REASON_TIMER = 4
 WAKE_REASON_INT_PIN = 8
 
+
 class Pycoproc:
-    """ class for handling the interaction with PIC MCU """
+    """class for handling the interaction with PIC MCU"""
 
     I2C_SLAVE_ADDR = const(8)
 
@@ -85,7 +86,7 @@ class Pycoproc:
 
     EXP_RTC_PERIOD = const(7000)
 
-    def __init__(self, i2c=None, sda='P22', scl='P21'):
+    def __init__(self, i2c=None, sda="P22", scl="P21"):
         if i2c is not None:
             self.i2c = i2c
         else:
@@ -104,7 +105,7 @@ class Pycoproc:
         try:
             self.read_fw_version()
         except Exception as e:
-            raise Exception('Board not detected: {}'.format(e))
+            raise Exception("Board not detected: {}".format(e))
 
         # init the ADC for the battery measurements
         self.poke_memory(ANSELC_ADDR, 1 << 2)
@@ -117,15 +118,13 @@ class Pycoproc:
         self.mask_bits_in_memory(TRISC_ADDR, ~(1 << 6))
         self.mask_bits_in_memory(TRISC_ADDR, ~(1 << 7))
 
-
         self.gps_standby(False)
         self.sensor_power()
         self.sd_power()
 
         # for Pysense/Pytrack 2.0, the minimum firmware version is 15
         if self.read_fw_version() < 15:
-            raise ValueError('Firmware out of date')
-
+            raise ValueError("Firmware out of date")
 
     def _write(self, data, wait=True):
         self.i2c.writeto(I2C_SLAVE_ADDR, data)
@@ -133,7 +132,7 @@ class Pycoproc:
             self._wait()
 
     def _read(self, size):
-        return self.i2c.readfrom(I2C_SLAVE_ADDR, size + 1)[1:(size + 1)]
+        return self.i2c.readfrom(I2C_SLAVE_ADDR, size + 1)[1 : (size + 1)]
 
     def _wait(self):
         count = 0
@@ -141,8 +140,8 @@ class Pycoproc:
         while self.i2c.readfrom(I2C_SLAVE_ADDR, 1)[0] != 0xFF:
             time.sleep_us(100)
             count += 1
-            if (count > 500):  # timeout after 50ms
-                raise Exception('Board timeout')
+            if count > 500:  # timeout after 50ms
+                raise Exception("Board timeout")
 
     def _send_cmd(self, cmd):
         self._write(bytes([cmd]))
@@ -170,7 +169,18 @@ class Pycoproc:
         self._write(bytes([CMD_POKE, addr & 0xFF, (addr >> 8) & 0xFF, value & 0xFF]))
 
     def magic_write_read(self, addr, _and=0xFF, _or=0, _xor=0):
-        self._write(bytes([CMD_MAGIC, addr & 0xFF, (addr >> 8) & 0xFF, _and & 0xFF, _or & 0xFF, _xor & 0xFF]))
+        self._write(
+            bytes(
+                [
+                    CMD_MAGIC,
+                    addr & 0xFF,
+                    (addr >> 8) & 0xFF,
+                    _and & 0xFF,
+                    _or & 0xFF,
+                    _xor & 0xFF,
+                ]
+            )
+        )
         return self._read(1)[0]
 
     def toggle_bits_in_memory(self, addr, bits):
@@ -187,10 +197,21 @@ class Pycoproc:
             self.calibrate_rtc()
         except Exception:
             pass
-        time_s = int((time_s * self.clk_cal_factor) + 0.5)  # round to the nearest integer
-        if time_s >= 2**(8*3):
-            time_s = 2**(8*3)-1
-        self._write(bytes([CMD_SETUP_SLEEP, time_s & 0xFF, (time_s >> 8) & 0xFF, (time_s >> 16) & 0xFF]))
+        time_s = int(
+            (time_s * self.clk_cal_factor) + 0.5
+        )  # round to the nearest integer
+        if time_s >= 2 ** (8 * 3):
+            time_s = 2 ** (8 * 3) - 1
+        self._write(
+            bytes(
+                [
+                    CMD_SETUP_SLEEP,
+                    time_s & 0xFF,
+                    (time_s >> 8) & 0xFF,
+                    (time_s >> 16) & 0xFF,
+                ]
+            )
+        )
 
     def go_to_sleep(self, gps=True):
         # enable or disable back-up power to the GPS receiver
@@ -215,13 +236,19 @@ class Pycoproc:
         # check if INT pin (PIC RC1), should be used for wakeup
         if self.wake_int_pin:
             if self.wake_int_pin_rising_edge:
-                self.set_bits_in_memory(OPTION_REG_ADDR, 1 << 6) # rising edge of INT pin
+                self.set_bits_in_memory(
+                    OPTION_REG_ADDR, 1 << 6
+                )  # rising edge of INT pin
             else:
-                self.mask_bits_in_memory(OPTION_REG_ADDR, ~(1 << 6)) # falling edge of INT pin
-            self.mask_bits_in_memory(ANSELC_ADDR, ~(1 << 1)) # disable analog function for RC1 pin
-            self.set_bits_in_memory(TRISC_ADDR, 1 << 1) # make RC1 input pin
-            self.mask_bits_in_memory(INTCON_ADDR, ~(1 << 1)) # clear INTF
-            self.set_bits_in_memory(INTCON_ADDR, 1 << 4) # enable interrupt; set INTE)
+                self.mask_bits_in_memory(
+                    OPTION_REG_ADDR, ~(1 << 6)
+                )  # falling edge of INT pin
+            self.mask_bits_in_memory(
+                ANSELC_ADDR, ~(1 << 1)
+            )  # disable analog function for RC1 pin
+            self.set_bits_in_memory(TRISC_ADDR, 1 << 1)  # make RC1 input pin
+            self.mask_bits_in_memory(INTCON_ADDR, ~(1 << 1))  # clear INTF
+            self.set_bits_in_memory(INTCON_ADDR, 1 << 4)  # enable interrupt; set INTE)
 
         self._write(bytes([CMD_GO_SLEEP]), wait=False)
 
@@ -232,8 +259,8 @@ class Pycoproc:
         # hence the need for the constant
         self._write(bytes([CMD_CALIBRATE]), wait=False)
         self.i2c.deinit()
-        Pin('P21', mode=Pin.IN)
-        pulses = pycom.pulses_get('P21', 100)
+        Pin("P21", mode=Pin.IN)
+        pulses = pycom.pulses_get("P21", 100)
         self.i2c.init(mode=I2C.MASTER, pins=(self.sda, self.scl), baudrate=100000)
         idx = 0
         for i in range(len(pulses)):
@@ -258,11 +285,15 @@ class Pycoproc:
         time.sleep_us(50)
         while self.peek_memory(ADCON0_ADDR) & _ADCON0_GO_nDONE_MASK:
             time.sleep_us(100)
-        adc_val = (self.peek_memory(ADRESH_ADDR) << 2) + (self.peek_memory(ADRESL_ADDR) >> 6)
-        return (((adc_val * 3.3 * 280) / 1023) / 180) + 0.01    # add 10mV to compensate for the drop in the FET
+        adc_val = (self.peek_memory(ADRESH_ADDR) << 2) + (
+            self.peek_memory(ADRESL_ADDR) >> 6
+        )
+        return (
+            ((adc_val * 3.3 * 280) / 1023) / 180
+        ) + 0.01  # add 10mV to compensate for the drop in the FET
 
     def setup_int_wake_up(self, rising, falling):
-        """ rising is for activity detection, falling for inactivity """
+        """rising is for activity detection, falling for inactivity"""
         wake_int = False
         if rising:
             self.set_bits_in_memory(IOCAP_ADDR, 1 << 5)
@@ -277,8 +308,8 @@ class Pycoproc:
             self.mask_bits_in_memory(IOCAN_ADDR, ~(1 << 5))
         self.wake_int = wake_int
 
-    def setup_int_pin_wake_up(self, rising_edge = True):
-        """ allows wakeup to be made by the INT pin (PIC -RC1) """
+    def setup_int_pin_wake_up(self, rising_edge=True):
+        """allows wakeup to be made by the INT pin (PIC -RC1)"""
         self.wake_int_pin = True
         self.wake_int_pin_rising_edge = rising_edge
 
@@ -311,7 +342,6 @@ class Pycoproc:
         else:
             # drive RA5 low
             self.mask_bits_in_memory(PORTA_ADDR, ~(1 << 5))
-
 
     # at the end:
     def reset_cmd(self):

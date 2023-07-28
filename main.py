@@ -14,6 +14,7 @@ import utime
 
 import pycom
 from pysense import Pysense
+
 # import machine
 
 from LIS2HH12 import LIS2HH12
@@ -50,7 +51,7 @@ while True:
     si_T, si_RH = si.temperature(), si.humidity()
 
     # MPL3115A2
-    mp_T, mp_p = mp.temperature(), mp.pressure()/100
+    mp_T, mp_p = mp.temperature(), mp.pressure() / 100
 
     # format to output string:
     # p
@@ -58,8 +59,7 @@ while True:
     # T
     s += "{:.1f}{}{:.1f}{}".format(si_T, LogSep, si_RH, LogSep)
     # acc
-    s += "{:.2f}{}{:.2f}{}{:.2f}".format(acc[0],
-                                         LogSep, acc[1], LogSep, acc[2])
+    s += "{:.2f}{}{:.2f}{}{:.2f}".format(acc[0], LogSep, acc[1], LogSep, acc[2])
     # orient
     s += "{}{:.1f}{}{:.1f}{}".format(LogSep, pit, LogSep, rol, LogSep)
     # light
@@ -68,9 +68,9 @@ while True:
     pycom.rgbled(colors[counter % 2])
     print(s)
 
-    dt = utime.ticks_ms()-t0
+    dt = utime.ticks_ms() - t0
     if dt < duration_ms:
-        utime.sleep_ms(duration_ms-dt)
+        utime.sleep_ms(duration_ms - dt)
 
     counter += 1
 
